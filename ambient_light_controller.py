@@ -29,6 +29,10 @@ class AmbientLightController:
         """Stop the ambient light processing and join the thread."""
         if self.running:
             self.running = False
+            color_data = []
+            for x, y, width, height in self.zones:
+                color_data.append((0, 0, 0))
+            self.arduino_controller.send_color_data(color_data)
             self.thread.join()
             self.arduino_controller.close()  # Ensure Arduino connection is closed
 
