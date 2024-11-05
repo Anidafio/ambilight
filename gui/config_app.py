@@ -1,9 +1,9 @@
 from PyQt5 import QtWidgets, QtGui
-from gui import GUI
-from overlay_window import OverlayWindow
+from gui.gui import GUI
+from gui.overlay_window import OverlayWindow
 import pystray
 from PIL import Image as PILImage
-from ambient_light_controller import AmbientLightController
+from ambilight_logic.ambient_light_controller import AmbientLightController
 
 class AmbientLightConfigApp:
     def __init__(self):

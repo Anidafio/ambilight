@@ -1,7 +1,7 @@
 import time
 import threading
-from camera_handler import CameraHandler
-from zone_analyzer import analyze_frame
+from ambilight_logic.camera_handler import CameraHandler
+from ambilight_logic.zone_analyzer import analyze_frame
 from arduino_controller import ArduinoController
 
 class AmbientLightController:
