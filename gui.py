@@ -1,78 +1,98 @@
-import tkinter as tk
 import serial.tools.list_ports
+from PyQt5 import QtWidgets, QtCore
 
-class GUI(tk.Frame):
-    def __init__(self, master, start_callback, stop_callback, show_overlay_callback, hide_overlay_callback, update_overlay_callback):
-        super().__init__(master)
-        self.master = master
-        self.master.title("Ambient Light Configuration")
-        
-        # Initialize callback functions
+class GUI(QtWidgets.QWidget):
+    def __init__(self, start_callback, stop_callback, show_overlay_callback, hide_overlay_callback, update_overlay_callback, refresh_ports_callback):
+        super().__init__()
         self.start_callback = start_callback
         self.stop_callback = stop_callback
         self.show_overlay_callback = show_overlay_callback
         self.hide_overlay_callback = hide_overlay_callback
         self.update_overlay_callback = update_overlay_callback
+        self.refresh_ports_callback = refresh_ports_callback
+
+        self.horizontal_leds = 18
+        self.vertical_leds = 10
+        self.edge_step = 50
+        self.zone_depth = 50
+
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QtWidgets.QGridLayout()
 
         # Number of LEDs on each side
-        tk.Label(self, text="Horizontal LEDs:").grid(row=0, column=0, padx=5, pady=5)
-        self.horizontal_leds = tk.IntVar(value=18)
-        tk.Entry(self, textvariable=self.horizontal_leds, width=10).grid(row=0, column=1, padx=5, pady=5)
+        layout.addWidget(QtWidgets.QLabel("Horizontal LEDs:"), 0, 0)
+        self.horizontal_leds_input = QtWidgets.QSpinBox()
+        self.horizontal_leds_input.setValue(self.horizontal_leds)
+        self.horizontal_leds_input.valueChanged.connect(self.update_overlay_callback)
+        layout.addWidget(self.horizontal_leds_input, 0, 1)
 
-        tk.Label(self, text="Vertical LEDs:").grid(row=1, column=0, padx=5, pady=5)
-        self.vertical_leds = tk.IntVar(value=10)
-        tk.Entry(self, textvariable=self.vertical_leds, width=10).grid(row=1, column=1, padx=5, pady=5)
+        layout.addWidget(QtWidgets.QLabel("Vertical LEDs:"), 1, 0)
+        self.vertical_leds_input = QtWidgets.QSpinBox()
+        self.vertical_leds_input.setValue(self.vertical_leds)
+        self.vertical_leds_input.valueChanged.connect(self.update_overlay_callback)
+        layout.addWidget(self.vertical_leds_input, 1, 1)
 
         # Edge step from screen (in pixels)
-        tk.Label(self, text="Edge Step (px):").grid(row=2, column=0, padx=5, pady=5)
-        self.edge_step = tk.IntVar(value=50)
-        edge_step_entry = tk.Entry(self, textvariable=self.edge_step, width=10)
-        edge_step_entry.grid(row=2, column=1, padx=5, pady=5)
-        edge_step_entry.bind("<Return>", lambda event: self.update_overlay_callback())
-        
-        # Zone depth slider
-        tk.Label(self, text="Zone Depth:").grid(row=3, column=0, padx=5, pady=5)
-        self.zone_depth = tk.IntVar(value=50)
-        zone_depth_slider = tk.Scale(self, from_=10, to=200, orient="horizontal", variable=self.zone_depth)
-        zone_depth_slider.grid(row=3, column=1, padx=5, pady=5)
-        zone_depth_slider.bind("<B1-Motion>", lambda event: self.update_overlay_callback())
+        layout.addWidget(QtWidgets.QLabel("Edge Step (px):"), 2, 0)
+        self.edge_step_input = QtWidgets.QSpinBox()
+        self.edge_step_input.setValue(self.edge_step)
+        self.edge_step_input.valueChanged.connect(self.update_overlay_callback)
+        layout.addWidget(self.edge_step_input, 2, 1)
 
-        # Preview Zones checkbox and Refresh Preview button
-        self.preview_enabled = tk.BooleanVar(value=False)
-        tk.Checkbutton(self, text="Preview Zones", variable=self.preview_enabled, command=self.toggle_preview).grid(row=4, column=0, padx=5, pady=5)
+        # Zone depth slider
+        layout.addWidget(QtWidgets.QLabel("Zone Depth:"), 3, 0)
+        self.zone_depth_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.zone_depth_slider.setMinimum(10)
+        self.zone_depth_slider.setMaximum(200)
+        self.zone_depth_slider.setValue(self.zone_depth)
+        self.zone_depth_slider.valueChanged.connect(self.update_overlay_callback)
+        layout.addWidget(self.zone_depth_slider, 3, 1)
+
+        # Preview Zones checkbox
+        self.preview_checkbox = QtWidgets.QCheckBox("Preview Zones")
+        self.preview_checkbox.stateChanged.connect(self.toggle_preview)
+        layout.addWidget(self.preview_checkbox, 4, 0)
 
         # Serial port selection
-        tk.Label(self, text="Arduino Port:").grid(row=5, column=0, padx=5, pady=5)
-        self.port_var = tk.StringVar()
-        self.port_dropdown = tk.OptionMenu(self, self.port_var, *self.get_serial_ports())
-        self.port_dropdown.grid(row=5, column=1, padx=5, pady=5)
+        layout.addWidget(QtWidgets.QLabel("Arduino Port:"), 5, 0)
+        self.port_dropdown = QtWidgets.QComboBox()
+        self.refresh_ports()
+        layout.addWidget(self.port_dropdown, 5, 1)
 
         # Refresh Ports Button
-        self.refresh_button = tk.Button(self, text="Refresh Ports", command=self.refresh_ports)
-        self.refresh_button.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
+        refresh_button = QtWidgets.QPushButton("Refresh Ports")
+        refresh_button.clicked.connect(self.refresh_ports_callback)
+        layout.addWidget(refresh_button, 6, 0, 1, 2)
 
         # Start/Stop Buttons
-        self.start_button = tk.Button(self, text="Start", command=self.start_callback)
-        self.start_button.grid(row=6, column=0, padx=5, pady=10)
-        self.stop_button = tk.Button(self, text="Stop", command=self.stop_callback, state=tk.DISABLED)
-        self.stop_button.grid(row=6, column=1, padx=5, pady=10)
-    
+        self.start_button = QtWidgets.QPushButton("Start")
+        self.start_button.clicked.connect(self.start_callback)
+        layout.addWidget(self.start_button, 7, 0)
+
+        self.stop_button = QtWidgets.QPushButton("Stop")
+        self.stop_button.setEnabled(False)
+        self.stop_button.clicked.connect(self.stop_callback)
+        layout.addWidget(self.stop_button, 7, 1)
+
+        self.setLayout(layout)
+
+    def closeEvent(self, event):
+        """Override close event to hide instead of closing."""
+        event.ignore()  # Ignore the close event
+        self.hide()     # Hide the window
+        
     def refresh_ports(self):
         """Refresh the list of serial ports."""
-        self.port_var.set("")  # Clear the current selection
-        menu = self.port_dropdown["menu"]
-        menu.delete(0, "end")  # Clear the current menu options
-        new_ports = self.get_serial_ports()
-        for port in new_ports:
-            menu.add_command(label=port, command=lambda value=port: self.port_var.set(value))
-            
+        self.port_dropdown.clear()
+        ports = serial.tools.list_ports.comports()
+        for port in ports:
+            self.port_dropdown.addItem(port.device)
+
     def toggle_preview(self):
-        if self.preview_enabled.get():
+        """Toggle preview display based on checkbox state."""
+        if self.preview_checkbox.isChecked():
             self.show_overlay_callback()
         else:
             self.hide_overlay_callback()
-
-    def get_serial_ports(self):
-        """List all available serial ports."""
-        ports = serial.tools.list_ports.comports()
-        return [port.device for port in ports]

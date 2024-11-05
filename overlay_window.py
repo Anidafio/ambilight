@@ -14,7 +14,6 @@ class OverlayWindow(QtWidgets.QWidget):
 
         # Set window size to match the screen
         self.setGeometry(0, 0, screen_width, screen_height)
-        self.show()
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
@@ -26,6 +25,6 @@ class OverlayWindow(QtWidgets.QWidget):
         for (x, y, width, height) in self.zones:
             painter.drawRect(x, y, width, height)
     
-    def hide(self):
+    def close(self):
         """Close the overlay window."""
-        self.close()
+        super().close()
